@@ -1,0 +1,65 @@
+[tool.poetry]
+name = "movie-metadata"
+version = "0.1.0"
+description = ""
+authors = ["Chris Peterson <cdpeters1@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pandas = "^2.2.2"
+polars = "^0.20.22"
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.4.0"
+isort = "^5.13.2"
+flake8 = "^7.0.0"
+jupyterlab = "^4.1.6"
+blacken-docs = "^1.16.0"
+flake8-docstrings = "^1.7.0"
+interrogate = "^1.7.0"
+mypy = "^1.10.0"
+nbqa = "^1.8.5"
+sphinx = "^7.3.7"
+docrepr = "^0.2.0"
+rich = "^13.7.1"
+pandas-stubs = "^2.2.1.240316"
+openpyxl = "^3.1.2"
+ipykernel = "^6.29.4"
+click = "^8.1.7"
+
+[tool.black]
+target-version = ["py311"]
+
+[tool.isort]
+profile = "black"
+
+[tool.interrogate]
+ignore-init-module = true
+fail-under = 100
+verbose = 1
+exclude = ["*.ipynb_checkpoints*"]
+
+[tool.mypy]
+python_version = "3.11"
+
+[[tool.mypy.overrides]]
+module = [
+    "plotly.*"
+]
+ignore_missing_imports = true
+
+[tool.nbqa.addopts]
+flake8 = [
+    "--extend-ignore=D100,E501"
+]
+interrogate = [
+    "--ignore-module"
+]
+
+[tool.nbqa.md]
+blacken-docs = true
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
