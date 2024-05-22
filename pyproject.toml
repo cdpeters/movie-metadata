@@ -27,6 +27,7 @@ pandas-stubs = "^2.2.1.240316"
 openpyxl = "^3.1.2"
 ipykernel = "^6.29.4"
 click = "^8.1.7"
+nbstripout = "^0.7.1"
 
 [tool.black]
 target-version = ["py311"]
