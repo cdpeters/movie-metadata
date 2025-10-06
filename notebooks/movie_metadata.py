@@ -1,7 +1,7 @@
 import marimo
 
 __generated_with = "0.16.3"
-app = marimo.App(width="medium", auto_download=["html"])
+app = marimo.App(width="medium", auto_download=["html", "ipynb"])
 
 
 @app.cell
@@ -148,7 +148,9 @@ def _(mm_transformed, pl):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""The only problem row preventing casting is the movie `"Apollo 13"`. The release year for this movie is `1995` and will be updated in the **Column Transformations** section below.""")
+    mo.md(
+        r"""The only problem row preventing casting is the movie `"Apollo 13"`. The release year for this movie is `1995` and will be updated in the **Column Transformations** section below."""
+    )
     return
 
 
@@ -166,7 +168,9 @@ def _(mm_transformed):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""Null values are only found in the `gross` and `meta_score` columns. This is not really an issue therefore no action will be taken for null values.""")
+    mo.md(
+        r"""Null values are only found in the `gross` and `meta_score` columns. This is not really an issue therefore no action will be taken for null values."""
+    )
     return
 
 
@@ -195,7 +199,9 @@ def _(mm_transformed, pl):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""There are two movies that share the same title but are clearly different movies. No action is needed.""")
+    mo.md(
+        r"""There are two movies that share the same title but are clearly different movies. No action is needed."""
+    )
     return
 
 
@@ -214,7 +220,9 @@ def _(mm_transformed, pl):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""There are no duplicates for the composite key `(series_title, director)`. Although not the goal of the project, if a database was constructed, this key could be used as primary key. Because no duplicates were found, it is unnecessary to test the third composite key.""")
+    mo.md(
+        r"""There are no duplicates for the composite key `(series_title, director)`. Although not the goal of the project, if a database was constructed, this key could be used as primary key. Because no duplicates were found, it is unnecessary to test the third composite key."""
+    )
     return
 
 
@@ -352,7 +360,9 @@ def _(mm, pl):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""There are 21 unique genres. For analysis operations, the genres could be multi-hot encoded across 21 new columns. Instead, the functionality of the polars `List` type column will be used for the operations involving the genres.""")
+    mo.md(
+        r"""There are 21 unique genres. For analysis operations, the genres could be multi-hot encoded across 21 new columns. Instead, the functionality of the polars `List` type column will be used for the operations involving the genres."""
+    )
     return
 
 
