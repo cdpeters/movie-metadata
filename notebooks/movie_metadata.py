@@ -488,7 +488,7 @@ def _(mm, pl):
             pl.col("star3"),
             pl.col("star4"),
         )
-        .melt()
+        .unpivot()
         .group_by("value")
         .len()
         .sort(by="len", descending=True)
