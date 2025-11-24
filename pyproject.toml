@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "great-tables>=0.20.0",
     "marimo[sql]>=0.10.7",
     "matplotlib>=3.10.0",
     "pandas>=2.2.3",
@@ -60,3 +61,7 @@ flake8 = [
 interrogate = [
     "--ignore-module"
 ]
+
+[tool.basedpyright]
+venvPath = "."
+venv = ".venv"
