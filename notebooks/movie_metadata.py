@@ -1,7 +1,15 @@
 import marimo
 
-__generated_with = "0.16.3"
-app = marimo.App(width="medium", auto_download=["html"])
+__generated_with = "0.18.0"
+app = marimo.App(width="medium", auto_download=["html", "ipynb"])
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    # Movie Metadata Analysis
+    """)
+    return
 
 
 @app.cell
@@ -17,16 +25,15 @@ def _():
     import seaborn as sns
     from plotly.subplots import make_subplots
     import numpy as np
+    from great_tables import GT
 
     pl.Config.set_tbl_rows(25)
-    return Path, cs, make_subplots, mo, np, pl, px
+    return GT, Path, cs, make_subplots, mo, np, pl, px
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
-    # Movie Metadata Analysis
+    mo.md(r"""
     ## Extract
     ### Main variables
     | variable         | description                                                                           |
@@ -42,20 +49,21 @@ def _(mo):
         - `Poster_Link`
         - `Overview`
         - `Certificate`
-    3. Convert all column names to lowercase for uniformity.
-    4. Adjust the max allowed length of strings in outputs to easily see the full titles of movies
+    3. Standardize all column names to lowercase for uniformity.
+    4. Reorder the columns into a more logical order.
+    5. Adjust the max allowed length of strings in outputs to easily see the full titles of movies
         - the movie title is treated as the priority for viewing string output in the dataframe
-    """
-    )
+    """)
     return
 
 
 @app.cell
 def _(Path, pl):
-    movie_metadata_path: Path = Path.cwd() / "imdb_top_1000.csv"
+    # Extract the dataset.
+    _movie_metadata_path: Path = Path.cwd() / "imdb_top_1000.csv"
 
     mm_raw = pl.read_csv(
-        source=movie_metadata_path, schema_overrides={"Released_Year": pl.String}
+        source=_movie_metadata_path, schema_overrides={"Released_Year": pl.String}
     )
 
     # Drop the columns mentioned above and rename columns as all lowercase.
@@ -64,6 +72,25 @@ def _(Path, pl):
         .drop(["Poster_Link", "Overview", "Certificate"])
         .rename(lambda col_name: col_name.lower())
     )  # fmt: skip
+
+    # Reorder columns.
+    _col_order = [
+        "series_title",
+        "director",
+        "released_year",
+        "genre",
+        "star1",
+        "star2",
+        "star3",
+        "star4",
+        "runtime",
+        "gross",
+        "meta_score",
+        "imdb_rating",
+        "no_of_votes",
+    ]
+
+    mm_transformed = mm_transformed.select(_col_order)
 
     # Change the display so full titles are shown.
     _max_title_len = mm_transformed["series_title"].str.len_bytes().max()
@@ -75,37 +102,24 @@ def _(Path, pl):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     ## Explore
     ### Columns Per Data Type
-    """
-    )
+    """)
     return
 
 
 @app.cell
 def _(mm_transformed, pl):
-    # First check what data types are in the dataframe.
     pl.Series(mm_transformed.dtypes).value_counts(sort=True)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""#### Integer Columns""")
-    return
-
-
-@app.cell
-def _(cs, mm_transformed):
-    mm_transformed.select(cs.integer()).columns
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""#### String Columns""")
+    mo.md(r"""
+    #### String Columns
+    """)
     return
 
 
@@ -117,13 +131,31 @@ def _(cs, mm_transformed):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""`released_year`, `runtime`, and `gross` should all be integer columns.""")
+    mo.md(r"""
+    `released_year`, `runtime`, and `gross` should all be integer columns.
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""#### Float Columns""")
+    mo.md(r"""
+    #### Integer Columns
+    """)
+    return
+
+
+@app.cell
+def _(cs, mm_transformed):
+    mm_transformed.select(cs.integer()).columns
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    #### Float Columns
+    """)
     return
 
 
@@ -135,7 +167,9 @@ def _(cs, mm_transformed):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""### `released_year` Values Preventing Casting to Integer Column""")
+    mo.md(r"""
+    ### `released_year` Values Preventing Casting to Integer Column
+    """)
     return
 
 
@@ -148,13 +182,17 @@ def _(mm_transformed, pl):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""The only problem row preventing casting is the movie `"Apollo 13"`. The release year for this movie is `1995` and will be updated in the **Column Transformations** section below.""")
+    mo.md(r"""
+    The only problem row preventing casting is the movie `"Apollo 13"`. The release year for this movie is `1995` and will be updated in the **Column Transformations** section below.
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""### Missing/Null Values""")
+    mo.md(r"""
+    ### Missing/Null Values
+    """)
     return
 
 
@@ -166,14 +204,15 @@ def _(mm_transformed):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""Null values are only found in the `gross` and `meta_score` columns. This is not really an issue therefore no action will be taken for null values.""")
+    mo.md(r"""
+    Null values are only found in the `gross` and `meta_score` columns. This is not really an issue therefore no action will be taken for null values.
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     ### Duplicates
     - Since each record should represent a unique film or TV series, we'll search for a candidate key by testing the following composite keys:
         - `(series_title,)`
@@ -182,8 +221,7 @@ def _(mo):
     - Then we can assess what to do with any duplicates we find
 
     #### `(series_title,)`
-    """
-    )
+    """)
     return
 
 
@@ -195,13 +233,17 @@ def _(mm_transformed, pl):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""There are two movies that share the same title but are clearly different movies. No action is needed.""")
+    mo.md(r"""
+    There are two movies that share the same title but are clearly different movies. No action is needed.
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""#### `(series_title, director)`""")
+    mo.md(r"""
+    #### `(series_title, director)`
+    """)
     return
 
 
@@ -214,78 +256,129 @@ def _(mm_transformed, pl):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""There are no duplicates for the composite key `(series_title, director)`. Although not the goal of the project, if a database was constructed, this key could be used as primary key. Because no duplicates were found, it is unnecessary to test the third composite key.""")
+    mo.md(r"""
+    There are no duplicates for the composite key `(series_title, director)`. Although not the goal of the project, if a database was constructed, this key could be used as primary key. Because no duplicates were found, it is unnecessary to test the third composite key.
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     ## Transformations
-    ### Column Reordering
     ### Column Transformations
-    1. `released_year`
-        - There is one value that is preventing the column from being cast as an integer column. The movie is `"Apollo 13"`; the `released_year` value is `"PG"` and should be changed to `"1995"`. Then the column can be cast to an integer column. `pl.lit()` is needed because polars would otherwise try to look for a column named `"1995"`. Now the column can be cast to an integer type.
-    1. `genre`
-        - The values need to be split on ", ". The split operation will cast the column as a list type.
-    1. `runtime`
-        - The characters " min" need to be removed. Then cast to an integer type.
-    1. `gross`
-        - All of the "," characters need to be removed. Then cast to an integer type.
-    """
-    )
+    - `released_year` - There is one row value that is preventing the column from being cast as an integer column. The movie is `"Apollo 13"`; the `released_year` value is `"PG"` and should be changed to `"1995"`. Then the column can be cast to an integer column. `pl.lit()` is needed because polars would otherwise try to look for a column named `"1995"`.
+    - `genre` - The values need to be split on `", "`. The split operation will cast the column as a list type.
+    - `runtime` - The characters `" min"` need to be removed. Then cast to an unsigned 16-bit integer type.
+    - `gross` - All of the `","` characters need to be removed. Then cast to an unsigned 64-bit integer type.
+    - `meta_score` - cast to an unsigned 8-bit integer type.
+    - `no_of_votes` - cast to an unsigned 32-bit integer type.
+    > Note: Casting to specific integer types is not strictly necessary here. It is mainly an exercise in evaluating the most minimal data type for each column that could be used in a possible database in a real industry project setting.
+    """)
     return
 
 
 @app.cell
 def _(mm_transformed, pl):
-    # Column Reordering.
-    col_order = [
-        "series_title",
-        "released_year",
-        "genre",
-        "director",
-        "star1",
-        "star2",
-        "star3",
-        "star4",
-        "runtime",
-        "gross",
-        "meta_score",
-        "imdb_rating",
-        "no_of_votes",
-    ]
-
-    mm = mm_transformed.select(col_order)
-
     # Column Transformations.
-    mm = mm.with_columns(
-        # Convert `released_year` to integer column.
-        pl.when(pl.col("released_year") == "PG")
-        .then(pl.lit("1995"))
-        .otherwise(pl.col("released_year"))
-        .cast(pl.Int16)
-        .alias("released_year"),
-        # Convert `genre` to a list Column.
-        pl.col("genre").str.split(", "),
-        # Address the `runtime` column.
-        pl.col("runtime").str.strip_chars_end(characters=" min").cast(pl.Int16),
-        # Address the `gross` column.
-        pl.col("gross").str.replace_all(pattern=",", value="", literal=True).cast(pl.Int32),
-    )
+    mm = (
+        mm_transformed
+        .with_columns(
+            pl.when(pl.col("released_year") == "PG")
+              .then(pl.lit("1995"))
+              .otherwise(pl.col("released_year"))
+              .cast(pl.UInt16)
+              .alias("released_year"),
+            pl.col("genre").str.split(", "),
+            pl.col("runtime").str.strip_chars_end(characters=" min").cast(pl.UInt16),
+            pl.col("gross").str.replace_all(pattern=",", value="", literal=True).cast(pl.UInt64),
+            pl.col("meta_score").cast(pl.UInt8),
+            pl.col("no_of_votes").cast(pl.UInt32),
+        )
+    )  # fmt: skip
+
+    mm
     return (mm,)
 
 
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r""" """)
+@app.cell
+def _(mm, mo):
+    mo.inspect(mm["released_year"], methods=True)
+    return
+
+
+@app.cell
+def _(mm, pl):
+    # Check that the Apollo 13 entry is corrected.
+    mm.filter(pl.col("series_title") == "Apollo 13")
+    return
+
+
+@app.cell
+def _(cs, mm):
+    # Step 1: Select all integer columns and compute max and min
+    agg_df = mm.select(
+        [
+            cs.integer().max().name.suffix("_max"),
+            cs.integer().min().name.suffix("_min"),
+        ]
+    )
+
+    # Step 2: Unpivot to long format so each row is a column name
+    long_df = agg_df.unpivot(cs.all(), variable_name="column_stat", value_name="value")
+
+    long_df
+
+    # # Step 3: Extract column name and stat type, then pivot to desired format
+    # result = (
+    #     long_df
+    #     .with_columns([
+    #         pl.col("column_stat").str.extract(r"(.+)_max", 1).alias("column"),
+    #         pl.col("column_stat").str.extract(r"(.+)_min", 1).alias("column_min"),
+    #         (pl.col("column_stat").str.ends_with("_max")).alias("is_max"),
+    #     ])
+    #     .with_columns([
+    #         pl.when(pl.col("is_max"))
+    #           .then(pl.col("column"))
+    #           .otherwise(pl.col("column_min"))
+    #           .alias("column"),
+    #         pl.when(pl.col("is_max"))
+    #           .then(pl.col("value"))
+    #           .otherwise(pl.col("value") > 0)
+    #           .alias("value"),
+    #         pl.when(pl.col("is_max"))
+    #           .then(pl.lit("max"))
+    #           .otherwise(pl.lit("min_gt_0"))
+    #           .alias("stat"),
+    #     ])
+    #     .filter(pl.col("column").is_not_null())
+    #     .select(["column", "stat", "value"])
+    #     .pivot(
+    #         values="value",
+    #         index="column",
+    #         columns="stat"
+    #     )
+    # )
+    return
+
+
+@app.cell
+def _(GT, pl):
+    GT(pl.DataFrame([2**8, 2**16, 2**32])).fmt_scientific()
+    return
+
+
+@app.cell
+def _(GT, maxes):
+    GT(maxes).fmt_scientific()
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""### Distributions of Numeric Columns""")
+    mo.md(r"""
+    ### Distributions of Numeric Columns
+    """)
     return
 
 
@@ -340,7 +433,9 @@ def _(mm):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""### Handling Genres""")
+    mo.md(r"""
+    ### Handling Genres
+    """)
     return
 
 
@@ -352,19 +447,19 @@ def _(mm, pl):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""There are 21 unique genres. For analysis operations, the genres could be multi-hot encoded across 21 new columns. Instead, the functionality of the polars `List` type column will be used for the operations involving the genres.""")
+    mo.md(r"""
+    There are 21 unique genres. For analysis operations, the genres could be multi-hot encoded across 21 new columns. Instead, the functionality of the polars `List` type column will be used for the operations involving the genres.
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     ## Analysis
     ### Top Directors Average IMDB Rating
     Find the 3 directors with the most movies. What is the average imdb score for each?
-    """
-    )
+    """)
     return
 
 
@@ -384,13 +479,11 @@ def _(mm, pl):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     ### Actor Roles
     Find actors with the most leading roles (`star1`). Find the actors with the most roles.
     #### Actors with the most leading roles (`star1`)
-    """
-    )
+    """)
     return
 
 
@@ -411,7 +504,9 @@ def _(mm, pl):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""#### Actors with the most roles""")
+    mo.md(r"""
+    #### Actors with the most roles
+    """)
     return
 
 
@@ -439,13 +534,11 @@ def _(mm, pl):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     ### Director/Actor Pairings
     For directors Steven Spielberg and Martin Scorsese, which actors have they worked with the most.
     #### Steven Spielberg
-    """
-    )
+    """)
     return
 
 
@@ -474,7 +567,9 @@ def _(mm, pl):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""#### Martin Scorsese""")
+    mo.md(r"""
+    #### Martin Scorsese
+    """)
     return
 
 
@@ -503,12 +598,10 @@ def _(mm, pl):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     ### Highest Rated Movie 2006-2016
     Find the highest rated movie in each year from 2006-2016.
-    """
-    )
+    """)
     return
 
 
@@ -530,12 +623,10 @@ def _(mm, pl):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     ### Plots
     #### Relationship between `runtime` and `gross`
-    """
-    )
+    """)
     return
 
 
@@ -595,7 +686,9 @@ def _(mm, pl, px):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""#### Relationship between `imdb_rating` and `gross`""")
+    mo.md(r"""
+    #### Relationship between `imdb_rating` and `gross`
+    """)
     return
 
 
@@ -706,12 +799,10 @@ def _(mm, pl, px):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     ### Genres
     Average `imdb_Rating` rating per genre.
-    """
-    )
+    """)
     return
 
 
