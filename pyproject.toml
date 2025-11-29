@@ -61,7 +61,3 @@ flake8 = [
 interrogate = [
     "--ignore-module"
 ]
-
-[tool.basedpyright]
-venvPath = "."
-venv = ".venv"
