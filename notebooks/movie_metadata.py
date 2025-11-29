@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.18.0"
+__generated_with = "0.18.1"
 app = marimo.App(width="medium", auto_download=["html", "ipynb"])
 
 
@@ -14,18 +14,18 @@ def _(mo):
 
 @app.cell
 def _():
-    import marimo as mo
     from pathlib import Path
 
+    import marimo as mo
     import matplotlib.pyplot as plt
+    import numpy as np
     import plotly.express as px
     import plotly.graph_objects as go
     import polars as pl
     import polars.selectors as cs
     import seaborn as sns
-    from plotly.subplots import make_subplots
-    import numpy as np
     from great_tables import GT
+    from plotly.subplots import make_subplots
 
     pl.Config.set_tbl_rows(25)
     return GT, Path, cs, make_subplots, mo, np, pl, px
@@ -59,9 +59,9 @@ def _(mo):
 
 @app.cell
 def _(Path, pl):
-    # Extract the dataset.
-    _movie_metadata_path: Path = Path.cwd() / "imdb_top_1000.csv"
+    _movie_metadata_path = Path.cwd() / "imdb_top_1000.csv"
 
+    # Load the dataset.
     mm_raw = pl.read_csv(
         source=_movie_metadata_path, schema_overrides={"Released_Year": pl.String}
     )
@@ -133,13 +133,7 @@ def _(cs, mm_transformed):
 def _(mo):
     mo.md(r"""
     `released_year`, `runtime`, and `gross` should all be integer columns.
-    """)
-    return
 
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
     #### Integer Columns
     """)
     return
@@ -176,7 +170,9 @@ def _(mo):
 @app.cell
 def _(mm_transformed, pl):
     # Cast to integer by supressing the error that results. Then find the null values.
-    mm_transformed.filter(pl.col("released_year").cast(pl.Int64, strict=False).is_null())
+    mm_transformed.filter(
+        pl.col("released_year").cast(pl.Int64, strict=False).is_null()
+    )
     return
 
 
@@ -184,13 +180,7 @@ def _(mm_transformed, pl):
 def _(mo):
     mo.md(r"""
     The only problem row preventing casting is the movie `"Apollo 13"`. The release year for this movie is `1995` and will be updated in the **Column Transformations** section below.
-    """)
-    return
 
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
     ### Missing/Null Values
     """)
     return
@@ -206,13 +196,7 @@ def _(mm_transformed):
 def _(mo):
     mo.md(r"""
     Null values are only found in the `gross` and `meta_score` columns. This is not really an issue therefore no action will be taken for null values.
-    """)
-    return
 
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
     ### Duplicates
     - Since each record should represent a unique film or TV series, we'll search for a candidate key by testing the following composite keys:
         - `(series_title,)`
@@ -235,13 +219,7 @@ def _(mm_transformed, pl):
 def _(mo):
     mo.md(r"""
     There are two movies that share the same title but are clearly different movies. No action is needed.
-    """)
-    return
 
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
     #### `(series_title, director)`
     """)
     return
@@ -249,7 +227,7 @@ def _(mo):
 
 @app.cell
 def _(mm_transformed, pl):
-    # `pl.struct` is used to tie the two columns together in one object.
+    # `pl.struct` is used to tie the two columns together into one object.
     mm_transformed.filter(pl.struct("series_title", "director").is_duplicated())
     return
 
@@ -258,13 +236,7 @@ def _(mm_transformed, pl):
 def _(mo):
     mo.md(r"""
     There are no duplicates for the composite key `(series_title, director)`. Although not the goal of the project, if a database was constructed, this key could be used as primary key. Because no duplicates were found, it is unnecessary to test the third composite key.
-    """)
-    return
 
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
     ## Transformations
     ### Column Transformations
     - `released_year` - There is one row value that is preventing the column from being cast as an integer column. The movie is `"Apollo 13"`; the `released_year` value is `"PG"` and should be changed to `"1995"`. Then the column can be cast to an integer column. `pl.lit()` is needed because polars would otherwise try to look for a column named `"1995"`.
@@ -299,12 +271,6 @@ def _(mm_transformed, pl):
 
     mm
     return (mm,)
-
-
-@app.cell
-def _(mm, mo):
-    mo.inspect(mm["released_year"], methods=True)
-    return
 
 
 @app.cell
@@ -449,13 +415,7 @@ def _(mm, pl):
 def _(mo):
     mo.md(r"""
     There are 21 unique genres. For analysis operations, the genres could be multi-hot encoded across 21 new columns. Instead, the functionality of the polars `List` type column will be used for the operations involving the genres.
-    """)
-    return
 
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
     ## Analysis
     ### Top Directors Average IMDB Rating
     Find the 3 directors with the most movies. What is the average imdb score for each?
@@ -701,7 +661,6 @@ def _(mm, np, pl):
     width = 0.5
     n_bins = 5
 
-
     breaks = np.linspace(min, max, n_bins)
 
     a = (
@@ -743,7 +702,6 @@ def _(mm, pl, px):
     #     )
     #     .sort(by="decade")
     # )
-
 
     # n_bins = 10
     # min_rating = mm["imdb_rating"].min()
