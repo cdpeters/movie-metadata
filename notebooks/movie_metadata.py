@@ -26,9 +26,10 @@ def _():
     import seaborn as sns
     from great_tables import GT
     from plotly.subplots import make_subplots
+    from itertools import product
 
     pl.Config.set_tbl_rows(25)
-    return GT, Path, cs, make_subplots, mo, np, pl, px
+    return Path, cs, go, make_subplots, mo, np, pl, product, px
 
 
 @app.cell(hide_code=True)
@@ -52,7 +53,7 @@ def _(mo):
     3. Standardize all column names to lowercase for uniformity.
     4. Reorder the columns into a more logical order.
     5. Adjust the max allowed length of strings in outputs to easily see the full titles of movies
-        - the movie title is treated as the priority for viewing string output in the dataframe
+        - The movie title is treated as the priority for viewing string output in the dataframe.
     """)
     return
 
@@ -75,9 +76,9 @@ def _(Path, pl):
 
     # Reorder columns.
     _col_order = [
+        "released_year",
         "series_title",
         "director",
-        "released_year",
         "genre",
         "star1",
         "star2",
@@ -103,7 +104,7 @@ def _(Path, pl):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## Explore
+    ## Identify Needed Transformations
     ### Columns Per Data Type
     """)
     return
@@ -170,9 +171,7 @@ def _(mo):
 @app.cell
 def _(mm_transformed, pl):
     # Cast to integer by supressing the error that results. Then find the null values.
-    mm_transformed.filter(
-        pl.col("released_year").cast(pl.Int64, strict=False).is_null()
-    )
+    mm_transformed.filter(pl.col("released_year").cast(pl.Int64, strict=False).is_null())
     return
 
 
@@ -239,7 +238,7 @@ def _(mo):
 
     ## Transformations
     ### Column Transformations
-    - `released_year` - There is one row value that is preventing the column from being cast as an integer column. The movie is `"Apollo 13"`; the `released_year` value is `"PG"` and should be changed to `"1995"`. Then the column can be cast to an integer column. `pl.lit()` is needed because polars would otherwise try to look for a column named `"1995"`.
+    - `released_year` - There is one row value that is preventing the column from being cast as an integer column. The movie is `"Apollo 13"`; the `released_year` value is `"PG"` and should be changed to `"1995"`. Then the column can be cast to an unsigned 16-bit integer type. `pl.lit()` is needed because polars would otherwise try to look for a column named `"1995"`.
     - `genre` - The values need to be split on `", "`. The split operation will cast the column as a list type.
     - `runtime` - The characters `" min"` need to be removed. Then cast to an unsigned 16-bit integer type.
     - `gross` - All of the `","` characters need to be removed. Then cast to an unsigned 64-bit integer type.
@@ -273,104 +272,56 @@ def _(mm_transformed, pl):
     return (mm,)
 
 
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Validate fix for Apollo 13 `release_year` Value
+    """)
+    return
+
+
 @app.cell
 def _(mm, pl):
-    # Check that the Apollo 13 entry is corrected.
     mm.filter(pl.col("series_title") == "Apollo 13")
-    return
-
-
-@app.cell
-def _(cs, mm):
-    # Step 1: Select all integer columns and compute max and min
-    agg_df = mm.select(
-        [
-            cs.integer().max().name.suffix("_max"),
-            cs.integer().min().name.suffix("_min"),
-        ]
-    )
-
-    # Step 2: Unpivot to long format so each row is a column name
-    long_df = agg_df.unpivot(cs.all(), variable_name="column_stat", value_name="value")
-
-    long_df
-
-    # # Step 3: Extract column name and stat type, then pivot to desired format
-    # result = (
-    #     long_df
-    #     .with_columns([
-    #         pl.col("column_stat").str.extract(r"(.+)_max", 1).alias("column"),
-    #         pl.col("column_stat").str.extract(r"(.+)_min", 1).alias("column_min"),
-    #         (pl.col("column_stat").str.ends_with("_max")).alias("is_max"),
-    #     ])
-    #     .with_columns([
-    #         pl.when(pl.col("is_max"))
-    #           .then(pl.col("column"))
-    #           .otherwise(pl.col("column_min"))
-    #           .alias("column"),
-    #         pl.when(pl.col("is_max"))
-    #           .then(pl.col("value"))
-    #           .otherwise(pl.col("value") > 0)
-    #           .alias("value"),
-    #         pl.when(pl.col("is_max"))
-    #           .then(pl.lit("max"))
-    #           .otherwise(pl.lit("min_gt_0"))
-    #           .alias("stat"),
-    #     ])
-    #     .filter(pl.col("column").is_not_null())
-    #     .select(["column", "stat", "value"])
-    #     .pivot(
-    #         values="value",
-    #         index="column",
-    #         columns="stat"
-    #     )
-    # )
-    return
-
-
-@app.cell
-def _(GT, pl):
-    GT(pl.DataFrame([2**8, 2**16, 2**32])).fmt_scientific()
-    return
-
-
-@app.cell
-def _(GT, maxes):
-    GT(maxes).fmt_scientific()
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ## Exploratory Analysis
     ### Distributions of Numeric Columns
     """)
     return
 
 
 @app.cell
-def _(cs, make_subplots, mm, px):
+def _(cs, go, make_subplots, mm, mo, product):
     # Select only the numeric columns.
     _numeric_data = mm.select(cs.numeric())
 
-    # Create a 2x3 subplot figure.
+    # Subplot grid size.
+    _subplot_rows = 2
+    _subplot_cols = 3
+
+    # Create a subplot figure.
     _fig = make_subplots(
-        rows=2,
-        cols=3,
+        rows=_subplot_rows,
+        cols=_subplot_cols,
         subplot_titles=_numeric_data.columns,
         horizontal_spacing=0.1,
         vertical_spacing=0.09,
     )
 
-    # Create a "flat" list of subplot references in order to assign each column's boxplot in
-    # the for loop below.
-    _subplot_refs = [(row, col) for row in range(1, 3) for col in range(1, 4)]
+    # Subplot coordinates for placing the box plot for each column.
+    _subplot_coords = product(range(1, _subplot_rows + 1), range(1, _subplot_cols + 1))
 
-    for (row, col), col_name in zip(_subplot_refs, _numeric_data.columns):
-        # Create box plot and add to figure.
-        box_plot = px.box(_numeric_data, y=col_name)
-        _fig.add_trace(box_plot.data[0], row=row, col=col)
+    for (_row, _col), _col_name in zip(_subplot_coords, _numeric_data.columns):
+        _fig.add_trace(
+            go.Box(y=_numeric_data[_col_name], name=_col_name), row=_row, col=_col
+        )
 
+    # Add size, title, and margins.
     _fig.update_layout(
         height=800,
         width=800,
@@ -381,19 +332,38 @@ def _(cs, make_subplots, mm, px):
             "xanchor": "center",
             "yanchor": "top",
         },
-        yaxis3_type="log",
-        yaxis6_type="log",
         showlegend=False,
         margin=dict(t=85, l=30, r=30, b=30),
     )
 
-    _fig.show()
+    # Adjust the `gross` and `no_of_votes` to show a log scale.
+    _fig.update_yaxes(type="log", row=1, col=3)
+    _fig.update_yaxes(type="log", row=2, col=3)
+
+    numeric_column_distributions_chart = mo.ui.plotly(_fig)
+    numeric_column_distributions_chart
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Overview of `mm`
+    """)
     return
 
 
 @app.cell
 def _(mm):
     mm.describe()
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## NOTEBOOK IS CHECKED UP TO THIS CELL
+    """)
     return
 
 
